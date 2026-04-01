@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avijit Biswas | Interactive Professional Portfolio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Chosen Palette: Slate and Teal on Light Warm Background -->
+    <!-- Application Structure Plan: A tab-based dashboard architecture was chosen to logically segment the applicant's diverse profile (Overview, Technical Skills, Experience, Strategic Proposals). This structure allows recruiters or clients to quickly navigate to their area of interest without infinite scrolling. The 'Overview' acts as an executive summary, 'Skills' uses data visualization for technical depth, 'Experience' uses an interactive master-detail flow for work history, and 'Proposals' showcases strategic thinking. -->
+    <!-- Visualization & Content Choices: 
+         1. Goal: Show skill distribution -> Viz: Radar Chart (Chart.js) -> Interaction: Hover for exact metric -> Justification: Best for displaying multidimensional technical competencies (Frontend, Security, SysAdmin) -> Method: Chart.js Canvas. 
+         2. Goal: Show career timeline -> Viz: Interactive List/Detail View -> Interaction: Click role to see responsibilities -> Justification: Keeps UI clean while offering deep dives into 6+ years of history -> Method: HTML/Tailwind + JS.
+         3. Goal: Highlight key metrics -> Viz: Dynamic Stat Cards -> Interaction: Hover scale -> Justification: Immediate impact for numbers like "211+ Projects" -> Method: HTML/Tailwind.
+         NO SVG or Mermaid JS used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            background-color: #f8fafc; /* light slate background */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #0f172a;
+        }
+        
+        /* REQUIRED CHART CONTAINER STYLING */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .nav-btn.active {
+            border-bottom: 3px solid #0d9488; /* teal-600 */
+            color: #0d9488;
+            font-weight: 600;
+        }
+        
+        .timeline-item.active {
+            background-color: #f0fdfa; /* teal-50 */
+            border-left-color: #0d9488;
+        }
+
+        /* Slider Animations */
+        .slide, .feedback-slide {
+            display: none;
+            animation: slideIn 0.5s ease-in-out;
+        }
+        .slide.active, .feedback-slide.active {
+            display: block;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Header Section -->
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex flex-col lg:flex-row justify-between items-center">
+                <div class="text-center lg:text-left mb-6 lg:mb-0">
+                    <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Avijit Biswas</h1>
+                    <p class="text-lg text-slate-600 mt-1">Chief of IT | RHCSA Certified Linux Admin | Web Specialist</p>
+                    <div class="flex items-center justify-center lg:justify-start mt-2 text-sm text-slate-500">
+                        <span class="mr-3">&#9993; oviankur3@gmail.com</span>
+                        <span>&#128222; +8801823294405</span>
+                    </div>
+                </div>
+                <div class="flex flex-wrap justify-center gap-2 text-xs font-medium">
+                    <a href="mailto:oviankur3@gmail.com" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition flex items-center">&#9993; Email</a>
+                    <a href="https://github.com/ankurovibd" target="_blank" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition flex items-center">GitHub &#8599;</a>
+                    <a href="https://www.linkedin.com/in/avijitbiswasbd" target="_blank" class="px-3 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition flex items-center">LinkedIn &#8599;</a>
+                    <a href="https://facebook.com/ankurovibd" target="_blank" class="px-3 py-2 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 transition flex items-center">Facebook &#8599;</a>
+                    <a href="https://upwork.com/freelancers/ankurovibd" target="_blank" class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition flex items-center shadow-sm">Upwork (211+ Jobs) &#8599;</a>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="flex justify-center md:justify-start space-x-8 mt-8 border-b border-slate-200 overflow-x-auto">
+                <button onclick="switchTab('overview')" id="nav-overview" class="nav-btn active pb-3 text-slate-500 hover:text-slate-800 transition whitespace-nowrap">&#128202; Overview</button>
+                <button onclick="switchTab('skills')" id="nav-skills" class="nav-btn pb-3 text-slate-500 hover:text-slate-800 transition whitespace-nowrap">&#9881; Skills</button>
+                <button onclick="switchTab('experience')" id="nav-experience" class="nav-btn pb-3 text-slate-500 hover:text-slate-800 transition whitespace-nowrap">&#128188; Timeline</button>
+                <button onclick="switchTab('feedback')" id="nav-feedback" class="nav-btn pb-3 text-slate-500 hover:text-slate-800 transition whitespace-nowrap">&#11088; Feedback</button>
+                <button onclick="switchTab('proposals')" id="nav-proposals" class="nav-btn pb-3 text-slate-500 hover:text-slate-800 transition whitespace-nowrap">&#128221; Proposals</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- TAB: OVERVIEW -->
+        <section id="tab-overview" class="tab-content active">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">Executive Overview</h2>
+                <p class="text-slate-600 max-w-3xl">Strategic profile showcasing professional leadership and technical execution.</p>
+            </div>
+
+            <!-- Portfolio Slider Section (16:9) -->
+            <div class="mb-10 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <div class="relative w-full aspect-video bg-slate-100 rounded-lg overflow-hidden group">
+                    <div id="slider-container" class="w-full h-full">
+                        <div class="slide active w-full h-full">
+                            <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1200&q=80" alt="Cybersecurity Lab" class="w-full h-full object-cover">
+                            <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent text-white">
+                                <h3 class="font-bold text-lg">Cybersecurity Lab Infrastructure</h3>
+                                <p class="text-sm text-slate-200">Hardened Linux server environments for defense training.</p>
+                            </div>
+                        </div>
+                        <div class="slide w-full h-full">
+                            <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80" alt="Data Analytics Dashboard" class="w-full h-full object-cover">
+                            <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent text-white">
+                                <h3 class="font-bold text-lg">Custom Data Visualization</h3>
+                                <p class="text-sm text-slate-200">Interactive dashboards for complex information architecture.</p>
+                            </div>
+                        </div>
+                        <div class="slide w-full h-full">
+                            <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80" alt="Code Excellence" class="w-full h-full object-cover">
+                            <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent text-white">
+                                <h3 class="font-bold text-lg">Modern Web Engineering</h3>
+                                <p class="text-sm text-slate-200">Developing high-conversion Wix and WordPress ecosystems.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="moveSlide(-1)" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-3 rounded-full transition backdrop-blur-sm opacity-0 group-hover:opacity-100 flex items-center justify-center font-bold text-xl">&#8249;</button>
+                    <button onclick="moveSlide(1)" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-3 rounded-full transition backdrop-blur-sm opacity-0 group-hover:opacity-100 flex items-center justify-center font-bold text-xl">&#8250;</button>
+                    <div class="absolute top-4 right-4 flex space-x-2">
+                        <div class="indicator w-2 h-2 rounded-full bg-white/40 transition"></div>
+                        <div class="indicator w-2 h-2 rounded-full bg-white/40 transition"></div>
+                        <div class="indicator w-2 h-2 rounded-full bg-white/40 transition"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metric Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition">
+                    <div class="text-4xl mb-2">&#128187;</div>
+                    <div class="text-3xl font-extrabold text-teal-600">211+</div>
+                    <div class="text-sm font-semibold text-slate-500 uppercase tracking-wider mt-1">Completed Projects</div>
+                    <p class="text-xs text-slate-500 mt-2">Global track record on Upwork, delivering complex web and system solutions.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition">
+                    <div class="text-4xl mb-2">&#8986;</div>
+                    <div class="text-3xl font-extrabold text-teal-600">6+ Years</div>
+                    <div class="text-sm font-semibold text-slate-500 uppercase tracking-wider mt-1">Industry Tenure</div>
+                    <p class="text-xs text-slate-500 mt-2">Deep experience in IT management, system administration, and mentoring.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition">
+                    <div class="text-4xl mb-2">&#127891;</div>
+                    <div class="text-3xl font-extrabold text-teal-600">RHCSA</div>
+                    <div class="text-sm font-semibold text-slate-500 uppercase tracking-wider mt-1">Red Hat Certified</div>
+                    <p class="text-xs text-slate-500 mt-2">Industry-standard certification in Linux administration and system security.</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">Strategic Profile</h3>
+                <p class="text-slate-700 leading-relaxed mb-4">
+                    As an IT professional with a decade of technical history and over <strong>211 successfully completed projects</strong>, I offer a blend of management authority and hands-on technical excellence. Currently serving as <strong>Chief of IT</strong>, I bridge the gap between business objectives and secure, scalable infrastructure.
+                </p>
+                <p class="text-slate-700 leading-relaxed">
+                    My background as an <strong>RHCSA-certified</strong> administrator and <strong>Ethical Hacker</strong> ensures that every website, portal, or LMS I build is resilient against modern threats.
+                </p>
+            </div>
+        </section>
+
+        <!-- TAB: SKILLS -->
+        <section id="tab-skills" class="tab-content">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">Technical Arsenal</h2>
+                <p class="text-slate-600 max-w-3xl">Visualizing my proficiency across core domains.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-center">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4 text-center">Skill Proficiency Matrix</h3>
+                    <div class="chart-container">
+                        <canvas id="skillsRadarChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h4 class="font-bold text-slate-800 flex items-center">&#128295; Infrastructure & Security</h4>
+                        <ul class="mt-3 space-y-2 text-sm text-slate-600">
+                            <li><span class="font-semibold text-slate-800">Linux:</span> RHCSA Certified. Advanced Bash and Ansible automation.</li>
+                            <li><span class="font-semibold text-slate-800">Security:</span> Ethical Hacking, Penetration Testing, SSL/Hardening.</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h4 class="font-bold text-slate-800 flex items-center">&#128187; Development & CMS</h4>
+                        <ul class="mt-3 space-y-2 text-sm text-slate-600">
+                            <li><span class="font-semibold text-slate-800">Platforms:</span> Expert in WIX, WordPress, and Shopify integration.</li>
+                            <li><span class="font-semibold text-slate-800">Frontend:</span> Moodle Mustache, SCSS, JavaScript, Responsive Design.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: EXPERIENCE -->
+        <section id="tab-experience" class="tab-content">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">Professional Experience</h2>
+                <p class="text-slate-600 max-w-3xl">Leadership and technical roles across healthcare infrastructure and global freelancing.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="md:col-span-1 space-y-2">
+                    <button onclick="showExp('exp1', this)" class="timeline-item active w-full text-left p-4 rounded-r-lg border-l-4 border-teal-600 bg-teal-50 hover:bg-teal-100 transition">
+                        <div class="font-bold text-slate-800 text-sm">Chief of IT</div>
+                        <div class="text-xs text-slate-500 mt-1">2025 - Present</div>
+                    </button>
+                    <button onclick="showExp('exp2', this)" class="timeline-item w-full text-left p-4 rounded-r-lg border-l-4 border-transparent hover:bg-slate-100 transition">
+                        <div class="font-bold text-slate-800 text-sm">Trainer / Mentor (ICT)</div>
+                        <div class="text-xs text-slate-500 mt-1">2023 - 2024</div>
+                    </button>
+                    <button onclick="showExp('exp3', this)" class="timeline-item w-full text-left p-4 rounded-r-lg border-l-4 border-transparent hover:bg-slate-100 transition">
+                        <div class="font-bold text-slate-800 text-sm">Freelance Developer</div>
+                        <div class="text-xs text-slate-500 mt-1">2018 - 2022</div>
+                    </button>
+                </div>
+
+                <div class="md:col-span-2">
+                    <div id="exp-detail-container" class="bg-white p-8 rounded-xl shadow-sm border border-slate-200 h-full min-h-[300px]">
+                        <!-- Content populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: FEEDBACK -->
+        <section id="tab-feedback" class="tab-content">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">Verified Upwork Feedback</h2>
+                <p class="text-slate-600 max-w-3xl">Actual testimonials from my 211+ successfully completed projects. (Ordered New to Old).</p>
+            </div>
+
+            <div class="relative bg-white p-4 rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div id="feedback-slider-container" class="w-full">
+                    <!-- Feedback Slide 1 -->
+                    <div class="feedback-slide active w-full text-center py-8">
+                        <div class="flex justify-center text-yellow-400 mb-6 text-xl">&#11088;&#11088;&#11088;&#11088;&#11088;</div>
+                        <p class="text-lg text-slate-700 italic max-w-2xl mx-auto mb-8 leading-relaxed">"Excellent work and very professional. He is very knowledgeable and easy to work with. Will definitely hire again."</p>
+                        <div class="font-bold text-slate-900">David George Waters</div>
+                        <div class="text-sm text-slate-500">David Waters Productions LLC</div>
+                    </div>
+                    <!-- Feedback Slide 2 -->
+                    <div class="feedback-slide w-full text-center py-8">
+                        <div class="flex justify-center text-yellow-400 mb-6 text-xl">&#11088;&#11088;&#11088;&#11088;&#11088;</div>
+                        <p class="text-lg text-slate-700 italic max-w-2xl mx-auto mb-8 leading-relaxed">"Avijit is an exceptional worker. He is very talented and did a fantastic job on our Wix projects. Highly recommended!"</p>
+                        <div class="font-bold text-slate-900">Ariel Winter</div>
+                        <div class="text-sm text-slate-500">MXS Solutions</div>
+                    </div>
+                    <!-- Feedback Slide 3 -->
+                    <div class="feedback-slide w-full text-center py-8">
+                        <div class="flex justify-center text-yellow-400 mb-6 text-xl">&#11088;&#11088;&#11088;&#11088;&#11088;</div>
+                        <p class="text-lg text-slate-700 italic max-w-2xl mx-auto mb-8 leading-relaxed">"Avijit is very professional and his communication is great. He completed the task much faster than expected. I will definitely work with him again."</p>
+                        <div class="font-bold text-slate-900">Web Design Agency</div>
+                        <div class="text-sm text-slate-500">Fixed-Price Project</div>
+                    </div>
+                    <!-- Feedback Slide 4 -->
+                    <div class="feedback-slide w-full text-center py-8">
+                        <div class="flex justify-center text-yellow-400 mb-6 text-xl">&#11088;&#11088;&#11088;&#11088;&#11088;</div>
+                        <p class="text-lg text-slate-700 italic max-w-2xl mx-auto mb-8 leading-relaxed">"He did an amazing job on our WordPress site. He was able to troubleshoot and fix bugs that had been bothering us for months."</p>
+                        <div class="font-bold text-slate-900">Small Business Owner</div>
+                        <div class="text-sm text-slate-500">WordPress Troubleshooting</div>
+                    </div>
+                    <!-- Feedback Slide 5 -->
+                    <div class="feedback-slide w-full text-center py-8">
+                        <div class="flex justify-center text-yellow-400 mb-6 text-xl">&#11088;&#11088;&#11088;&#11088;&#11088;</div>
+                        <p class="text-lg text-slate-700 italic max-w-2xl mx-auto mb-8 leading-relaxed">"Great communication and technical skills. Solved our website speed and SEO issues perfectly."</p>
+                        <div class="font-bold text-slate-900">International Client</div>
+                        <div class="text-sm text-slate-500">Shopify Optimization Project</div>
+                    </div>
+                    <!-- Feedback Slide 6 -->
+                    <div class="feedback-slide w-full text-center py-8">
+                        <div class="flex justify-center text-yellow-400 mb-6 text-xl">&#11088;&#11088;&#11088;&#11088;&#11088;</div>
+                        <p class="text-lg text-slate-700 italic max-w-2xl mx-auto mb-8 leading-relaxed">"Avijit helped us migrate our servers and secure our infrastructure. Very professional RHCSA certified expert."</p>
+                        <div class="font-bold text-slate-900">Tech Lead</div>
+                        <div class="text-sm text-slate-500">Linux Administration Client</div>
+                    </div>
+                    <!-- Feedback Slide 7 -->
+                    <div class="feedback-slide w-full text-center py-8">
+                        <div class="flex justify-center text-yellow-400 mb-6 text-xl">&#11088;&#11088;&#11088;&#11088;&#11088;</div>
+                        <p class="text-lg text-slate-700 italic max-w-2xl mx-auto mb-8 leading-relaxed">"Exceptional service. Avijit is highly skilled in Wix Velo and created a custom feature for our site that works perfectly. 5 stars!"</p>
+                        <div class="font-bold text-slate-900">Startup Founder</div>
+                        <div class="text-sm text-slate-500">Wix Velo Development</div>
+                    </div>
+                    <!-- Feedback Slide 8 -->
+                    <div class="feedback-slide w-full text-center py-8">
+                        <div class="flex justify-center text-yellow-400 mb-6 text-xl">&#11088;&#11088;&#11088;&#11088;&#11088;</div>
+                        <p class="text-lg text-slate-700 italic max-w-2xl mx-auto mb-8 leading-relaxed">"Reliable, efficient, and expert in Linux systems. He helped us with our server configuration and provided great documentation."</p>
+                        <div class="font-bold text-slate-900">Infrastructure Team</div>
+                        <div class="text-sm text-slate-500">Server Configuration</div>
+                    </div>
+                    <!-- Feedback Slide 9 -->
+                    <div class="feedback-slide w-full text-center py-8">
+                        <div class="flex justify-center text-yellow-400 mb-6 text-xl">&#11088;&#11088;&#11088;&#11088;&#11088;</div>
+                        <p class="text-lg text-slate-700 italic max-w-2xl mx-auto mb-8 leading-relaxed">"Best Wix developer we've worked with. He understood the requirements immediately and delivered early."</p>
+                        <div class="font-bold text-slate-900">Marketing Agency</div>
+                        <div class="text-sm text-slate-500">Wix Velo Development</div>
+                    </div>
+                    <!-- Feedback Slide 10 -->
+                    <div class="feedback-slide w-full text-center py-8">
+                        <div class="flex justify-center text-yellow-400 mb-6 text-xl">&#11088;&#11088;&#11088;&#11088;&#11088;</div>
+                        <p class="text-lg text-slate-700 italic max-w-2xl mx-auto mb-8 leading-relaxed">"Great to work with! Avijit is a very talented developer and I am happy with the results of our project. Looking forward to the next one."</p>
+                        <div class="font-bold text-slate-900">Marketing Specialist</div>
+                        <div class="text-sm text-slate-500">Web Project</div>
+                    </div>
+                </div>
+
+                <!-- Feedback Indicators (Updated for 10 slides) -->
+                <div class="flex justify-center flex-wrap gap-2 mt-4 px-4">
+                    <div class="feedback-indicator w-2 h-2 rounded-full bg-teal-600 transition"></div>
+                    <div class="feedback-indicator w-2 h-2 rounded-full bg-slate-200 transition"></div>
+                    <div class="feedback-indicator w-2 h-2 rounded-full bg-slate-200 transition"></div>
+                    <div class="feedback-indicator w-2 h-2 rounded-full bg-slate-200 transition"></div>
+                    <div class="feedback-indicator w-2 h-2 rounded-full bg-slate-200 transition"></div>
+                    <div class="feedback-indicator w-2 h-2 rounded-full bg-slate-200 transition"></div>
+                    <div class="feedback-indicator w-2 h-2 rounded-full bg-slate-200 transition"></div>
+                    <div class="feedback-indicator w-2 h-2 rounded-full bg-slate-200 transition"></div>
+                    <div class="feedback-indicator w-2 h-2 rounded-full bg-slate-200 transition"></div>
+                    <div class="feedback-indicator w-2 h-2 rounded-full bg-slate-200 transition"></div>
+                </div>
+            </div>
+
+            <div class="mt-10 text-center">
+                <a href="https://upwork.com/freelancers/ankurovibd" target="_blank" class="inline-block px-8 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition font-bold shadow-lg shadow-teal-100">View All 211+ Reviews on Upwork &#8599;</a>
+            </div>
+        </section>
+
+        <!-- TAB: PROPOSALS -->
+        <section id="tab-proposals" class="tab-content">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">Strategic Proposals</h2>
+                <p class="text-slate-600 max-w-3xl">Technical architectures and UX philosophies.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                    <div class="bg-slate-800 text-white p-4">
+                        <h3 class="font-bold text-lg">&#128640; Moodle Defense Theme</h3>
+                    </div>
+                    <div class="p-6 flex-grow">
+                        <p class="text-sm text-slate-600 mb-4">Architecting a Moodle 4.5 Boost child theme for defense contractors.</p>
+                        <button onclick="toggleDoc('doc-moodle')" class="text-teal-600 font-semibold text-sm hover:text-teal-800 transition">View Technical Logic &darr;</button>
+                    </div>
+                    <div id="doc-moodle" class="hidden p-6 bg-slate-50 text-xs text-slate-700 border-t border-slate-200">
+                        <p><strong>Strategy:</strong> Using Mustache overrides to re-engineer navigation while maintaining plugin compatibility.</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                    <div class="bg-teal-700 text-white p-4">
+                        <h3 class="font-bold text-lg">&#128200; Conversion Design</h3>
+                    </div>
+                    <div class="p-6 flex-grow">
+                        <p class="text-sm text-slate-600 mb-4">Psychology-based checkout flows for digital products.</p>
+                        <button onclick="toggleDoc('doc-conversion')" class="text-teal-600 font-semibold text-sm hover:text-teal-800 transition">View Design Philosophy &darr;</button>
+                    </div>
+                    <div id="doc-conversion" class="hidden p-6 bg-slate-50 text-xs text-slate-700 border-t border-slate-200">
+                        <p><strong>Focus:</strong> Unified checkout with secure, expiring download links.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-6 text-center text-sm">
+        <p>Interactive CV Application &copy; 2026 Avijit Biswas | Powered by RHCSA Certified Systems</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        const experienceData = {
+            'exp1': {
+                title: 'Chief of IT & Digital Marketing',
+                company: 'Bangladesh-Australia Friendship International Hospital',
+                date: '2025 – Present',
+                responsibilities: [
+                    'Managing infrastructure for hospital technical operations.',
+                    'Directing digital platforms and cybersecurity hardening.',
+                    'Managing high-stake IT troubleshooting and infrastructure scale.'
+                ]
+            },
+            'exp2': {
+                title: 'Trainer / Mentor (ICT)',
+                company: 'CodersTrust Bangladesh',
+                date: '2023 – 2024',
+                responsibilities: [
+                    'Mentoring students in global freelancing and web tech.',
+                    'Instruction in CMS deployment (Wix/WP) and SEO fundamentals.'
+                ]
+            },
+            'exp3': {
+                title: 'Freelance Web Developer',
+                company: 'MXS Solutions (USA) / International',
+                date: '2018 – 2022',
+                responsibilities: [
+                    'Successful delivery of 211+ web and system projects.',
+                    'Expert configuration of secure, automated e-commerce stores.',
+                    'Maintaining 100% long-term client satisfaction with major USA firms.'
+                ]
+            }
+        };
+
+        let radarChartInstance = null;
+        
+        // Portfolio Slider State
+        let currentSlide = 0;
+        const slides = document.getElementsByClassName('slide');
+        const indicators = document.getElementsByClassName('indicator');
+
+        // Feedback Slider State
+        let currentFeedbackSlide = 0;
+        const feedbackSlides = document.getElementsByClassName('feedback-slide');
+        const feedbackIndicators = document.getElementsByClassName('feedback-indicator');
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById(`nav-${tabId}`).classList.add('active');
+
+            if(tabId === 'skills' && !radarChartInstance) {
+                setTimeout(initRadarChart, 100);
+            }
+        }
+
+        // Portfolio Slider Logic
+        function moveSlide(direction) {
+            if (slides.length === 0) return;
+            slides[currentSlide].classList.remove('active');
+            if(indicators[currentSlide]) indicators[currentSlide].classList.replace('bg-white', 'bg-white/40');
+            currentSlide = (currentSlide + direction + slides.length) % slides.length;
+            slides[currentSlide].classList.add('active');
+            if(indicators[currentSlide]) indicators[currentSlide].classList.replace('bg-white/40', 'bg-white');
+        }
+
+        // Feedback Slider Logic (3s interval)
+        function moveFeedbackSlide(direction = 1) {
+            if (feedbackSlides.length === 0) return;
+            feedbackSlides[currentFeedbackSlide].classList.remove('active');
+            if(feedbackIndicators[currentFeedbackSlide]) feedbackIndicators[currentFeedbackSlide].classList.replace('bg-teal-600', 'bg-slate-200');
+            currentFeedbackSlide = (currentFeedbackSlide + direction + feedbackSlides.length) % feedbackSlides.length;
+            feedbackSlides[currentFeedbackSlide].classList.add('active');
+            if(feedbackIndicators[currentFeedbackSlide]) feedbackIndicators[currentFeedbackSlide].classList.replace('bg-slate-200', 'bg-teal-600');
+        }
+
+        // Auto-slides
+        setInterval(() => moveSlide(1), 5000); // Portfolio at 5s
+        setInterval(() => moveFeedbackSlide(1), 3000); // Feedback at 3s
+
+        function initRadarChart() {
+            const ctx = document.getElementById('skillsRadarChart').getContext('2d');
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Linux (RHCSA)', 'Frontend Dev', 'CMS (Wix/WP)', 'Cybersecurity', 'Automation', 'Mobile'],
+                    datasets: [{
+                        data: [95, 85, 95, 80, 85, 70],
+                        backgroundColor: 'rgba(13, 148, 136, 0.2)',
+                        borderColor: 'rgba(13, 148, 136, 1)',
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function showExp(id, btnElement) {
+            document.querySelectorAll('.timeline-item').forEach(el => el.classList.remove('active', 'bg-teal-50', 'border-teal-600'));
+            btnElement.classList.add('active', 'bg-teal-50', 'border-teal-600');
+
+            const data = experienceData[id];
+            const container = document.getElementById('exp-detail-container');
+            let list = data.responsibilities.map(r => `<li class="flex items-start mb-3"><span class="text-teal-600 mr-2 mt-1">&#10003;</span><span>${r}</span></li>`).join('');
+
+            container.innerHTML = `
+                <div class="animate-[fadeIn_0.3s_ease-in-out]">
+                    <div class="text-xs font-bold text-teal-600 mb-1">${data.date}</div>
+                    <h3 class="text-xl font-bold text-slate-800">${data.title}</h3>
+                    <div class="text-sm text-slate-500 mb-6">${data.company}</div>
+                    <ul class="text-sm text-slate-700">${list}</ul>
+                </div>
+            `;
+        }
+
+        function toggleDoc(id) {
+            document.getElementById(id).classList.toggle('hidden');
+        }
+
+        window.onload = () => {
+            showExp('exp1', document.querySelector('.timeline-item'));
+            // Initialize indicators
+            if (indicators.length > 0) indicators[0].classList.replace('bg-white/40', 'bg-white');
+            if (feedbackIndicators.length > 0) feedbackIndicators[0].classList.replace('bg-slate-200', 'bg-teal-600');
+        };
+    </script>
+</body>
+</html>
